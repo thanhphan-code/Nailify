@@ -1,0 +1,19 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <UserSecretsId>4d518727-8dea-47e6-8aac-26adaccc1e1e</UserSecretsId>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.8" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="8.0.8" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.8" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Nailify.Application\Nailify.Application.csproj" />
+    <ProjectReference Include="..\Nailify.Contracts\Nailify.Contracts.csproj" />
+    <ProjectReference Include="..\Nailify.Infrastructure\Nailify.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>
