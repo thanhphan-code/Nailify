@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useState } from "react";
@@ -15,6 +15,7 @@ type LoginForm = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login } = useAuth();
   const [formError, setFormError] = useState<string | null>(null);
   const [showRegister, setShowRegister] = useState(false);
@@ -25,8 +26,10 @@ export default function LoginPage() {
     const parsed = loginSchema.safeParse(data);
     if (!parsed.success) return;
     try {
-      await login(parsed.data);
-      navigate("/");
+      const response = await login(parsed.data);
+      const returnUrl = (location.state as { returnUrl?: string } | null)?.returnUrl;
+      const defaultUrl = response.user.role === "Customer" ? "/" : "/staff/appointments";
+      navigate(returnUrl?.startsWith("/") ? returnUrl : defaultUrl, { replace: true });
     } catch (error) {
       const axiosError = error as AxiosError<{ title?: string }>;
       setFormError(axiosError.response?.data?.title ?? "Không thể đăng nhập. Vui lòng thử lại.");
@@ -48,13 +51,13 @@ export default function LoginPage() {
               alt="Nail art manicure"
             />
           </div>
-          <Link to="/" className="auth-art-tag">Your next nail look awaits</Link>
+          <Link to="/" className="auth-art-tag">Bộ móng mới đang chờ bạn</Link>
         </aside>
 
         <div className="auth-content">
         <div className="auth-heading">
-          <h1 id="login-heading">Welcome Back</h1>
-          <p>Sign in to manage your nail appointments.</p>
+          <h1 id="login-heading">Chào mừng bạn trở lại</h1>
+          <p>Đăng nhập để quản lý các lịch hẹn làm móng.</p>
         </div>
         <form noValidate onSubmit={handleSubmit(onSubmit)} className="auth-form">
           <div className="auth-field">
@@ -63,21 +66,21 @@ export default function LoginPage() {
             {errors.email && <p className="field-error">{errors.email.message}</p>}
           </div>
           <div className="auth-field">
-            <label htmlFor="password">Password</label>
+            <label htmlFor="password">Mật khẩu</label>
             <input id="password" type="password" placeholder="Enter your Password" autoComplete="current-password" aria-invalid={Boolean(errors.password)} {...register("password")} />
             {errors.password && <p className="field-error">{errors.password.message}</p>}
           </div>
-          <Link className="auth-forgot" to="/forgot-password">Forgot password?</Link>
+          <Link className="auth-forgot" to="/forgot-password">Quên mật khẩu?</Link>
           {formError && <p className="form-error" role="alert">{formError}</p>}
           <button type="submit" disabled={isSubmitting} className="auth-submit">
             {isSubmitting ? "Signing in..." : "Log in"}
           </button>
         </form>
-        <p className="auth-switch">New to Nailify? <button type="button" className="auth-switch-link" onClick={() => setShowRegister(true)}>Create an account</button></p>
-        <div className="auth-divider" aria-hidden="true"><span>OR CONTINUE WITH</span></div>
+        <p className="auth-switch">Bạn mới đến Nailify? <button type="button" className="auth-switch-link" onClick={() => setShowRegister(true)}>Tạo tài khoản</button></p>
+        <div className="auth-divider" aria-hidden="true"><span>HOẶC TIẾP TỤC VỚI</span></div>
         <div className="auth-socials">
           <button type="button" className="auth-social-button" aria-label="Continue with Google" onClick={() => window.location.assign("/api/auth/google")}>
-            <span className="auth-social-mark auth-social-google">G</span> Continue with Google
+            <span className="auth-social-mark auth-social-google">G</span> Tiếp tục với Google
           </button>
         </div>
         </div>
@@ -93,7 +96,7 @@ export default function LoginPage() {
               alt="Nail art manicure"
             />
           </div>
-          <Link to="/" className="auth-art-tag">Your next nail look awaits</Link>
+          <Link to="/" className="auth-art-tag">Bộ móng mới đang chờ bạn</Link>
         </aside>
         <div className="auth-content">
           <RegisterForm embedded onSwitchToLogin={() => setShowRegister(false)} />

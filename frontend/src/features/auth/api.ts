@@ -86,3 +86,7 @@ export async function verifyPasswordResetCode(email: string, code: string): Prom
 export async function confirmPasswordReset(resetToken: string, newPassword: string): Promise<void> {
   await apiClient.post("/auth/password-reset/confirm", { resetToken, newPassword });
 }
+
+export async function changePassword(currentPassword: string, newPassword: string): Promise<void> {
+  await apiClient.post("/auth/change-password", { currentPassword, newPassword });
+}

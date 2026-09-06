@@ -1,10 +1,10 @@
 import axios from "axios";
 import {
-  clearTokens,
   getAccessToken,
   getRefreshToken,
   setTokens,
 } from "@/services/tokenStorage";
+import { useAuthStore } from "@/store/authStore";
 
 const baseURL = import.meta.env.VITE_API_BASE_URL ?? "/api";
 
@@ -48,7 +48,7 @@ apiClient.interceptors.response.use(
 
     const storedRefreshToken = getRefreshToken();
     if (!storedRefreshToken) {
-      clearTokens();
+      useAuthStore.getState().logout();
       return Promise.reject(error);
     }
 
@@ -70,7 +70,7 @@ apiClient.interceptors.response.use(
       originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
       return apiClient(originalRequest);
     } catch (refreshError) {
-      clearTokens();
+      useAuthStore.getState().logout();
       return Promise.reject(refreshError);
     }
   }

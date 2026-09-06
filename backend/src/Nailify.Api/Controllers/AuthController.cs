@@ -83,6 +83,25 @@ public class AuthController : ControllerBase
         return NoContent();
     }
 
+    [HttpPost("change-password")]
+    [Authorize]
+    public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request, CancellationToken cancellationToken)
+    {
+        if (!IsValidPassword(request.NewPassword))
+            return BadRequest(new { code = "WEAK_PASSWORD", title = "Mật khẩu mới phải có ít nhất 8 ký tự, gồm chữ hoa, chữ thường, số và ký tự đặc biệt." });
+        if (request.CurrentPassword == request.NewPassword)
+            return BadRequest(new { code = "PASSWORD_UNCHANGED", title = "Mật khẩu mới phải khác mật khẩu hiện tại." });
+
+        var user = await _users.GetByIdAsync(GetCurrentUserId(), cancellationToken);
+        if (user is null || !_passwordHasher.Verify(request.CurrentPassword, user.PasswordHash))
+            return BadRequest(new { code = "CURRENT_PASSWORD_INVALID", title = "Mật khẩu hiện tại không đúng." });
+
+        user.PasswordHash = _passwordHasher.Hash(request.NewPassword);
+        user.UpdatedAt = DateTime.UtcNow;
+        await _users.SaveChangesAsync(cancellationToken);
+        return NoContent();
+    }
+
     [HttpGet("google")]
     [AllowAnonymous]
     public IActionResult GoogleLogin()
@@ -196,3 +215,4 @@ public sealed record PasswordResetRequest(string Email);
 public sealed record PasswordResetVerifyRequest(string Email, string Code);
 public sealed record PasswordResetConfirmRequest(string ResetToken, string NewPassword);
 public sealed record PasswordResetVerificationResponse(string ResetToken);
+public sealed record ChangePasswordRequest(string CurrentPassword, string NewPassword);

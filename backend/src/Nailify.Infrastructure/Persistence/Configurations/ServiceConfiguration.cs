@@ -13,6 +13,7 @@ public class ServiceConfiguration : IEntityTypeConfiguration<Service>
         builder.Property(s => s.ImageUrl).HasMaxLength(2048);
         builder.Property(s => s.Price).HasColumnType("numeric(12,2)");
         builder.HasIndex(s => new { s.Category, s.Name }).IsUnique();
+        builder.HasIndex(s => new { s.IsActive, s.IsBookable, s.IsFeatured, s.DisplayOrder });
         builder.ToTable(t => t.HasCheckConstraint("CK_Services_Price_NonNegative", "\"Price\" >= 0"));
         builder.ToTable(t => t.HasCheckConstraint("CK_Services_DurationMinutes_Positive", "\"DurationMinutes\" > 0"));
     }

@@ -14,7 +14,7 @@ export default defineConfig({
     proxy: {
       // Proxy API calls to the .NET backend during development
       "/api": {
-        target: "https://localhost:5001",
+        target: "http://localhost:5000",
         changeOrigin: true,
         secure: false,
       },

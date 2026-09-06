@@ -9,7 +9,11 @@ export default function AuthBootstrap({ children }: { children: React.ReactNode 
   const logout = useAuthStore((s) => s.logout);
 
   useEffect(() => {
-    if (!getAccessToken() || user) return;
+    if (!getAccessToken()) {
+      if (user) logout();
+      return;
+    }
+    if (user) return;
 
     authApi
       .getCurrentUser()

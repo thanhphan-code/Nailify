@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Nailify.Contracts.Services;
+using Nailify.Contracts.NailDesigns;
 using Nailify.Domain.Entities;
 using Nailify.Domain.Enums;
 using Nailify.Infrastructure.Persistence;
@@ -29,7 +30,29 @@ public class ServicesController(NailifyDbContext db) : ControllerBase
 
     [HttpGet("{id:guid}")]
     [AllowAnonymous]
-    public async Task<ActionResult<ServiceDto>> GetById(Guid id, CancellationToken ct) => await db.Services.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id && x.IsActive, ct) is { } service ? Ok(ToDto(service)) : NotFound();
+    public async Task<ActionResult<ServiceDetailDto>> GetById(Guid id, CancellationToken ct)
+    {
+        var service = await db.Services.AsNoTracking().Include(x => x.ServiceNailDesigns).ThenInclude(x => x.NailDesign).ThenInclude(x => x.Category).FirstOrDefaultAsync(x => x.Id == id && x.IsActive, ct);
+        if (service is null) return NotFound(new { code = "SERVICE_NOT_FOUND" });
+        var designs = service.ServiceNailDesigns.Where(x => x.NailDesign.Status == UserStatus.Active && x.NailDesign.Category.IsActive)
+            .Select(x => new CompatibleNailDesignDto(x.NailDesignId, x.NailDesign.Name, x.NailDesign.ImageUrl, new NailDesignCategoryDto(x.NailDesign.Category.Id, x.NailDesign.Category.Name, x.NailDesign.Category.Name.ToLowerInvariant().Replace(' ', '-')), x.NailDesign.ExtraPrice, service.Price + x.NailDesign.ExtraPrice)).ToList();
+        return Ok(new ServiceDetailDto(service.Id, service.Name, service.Category.ToString(), service.Price, service.DurationMinutes, service.Description, service.ImageUrl, designs));
+    }
+
+    [HttpGet("{id:guid}/nail-designs")]
+    [AllowAnonymous]
+    public async Task<ActionResult<IReadOnlyList<CompatibleNailDesignDto>>> GetCompatibleNailDesigns(Guid id, CancellationToken ct)
+    {
+        var service = await db.Services.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id && x.IsActive, ct);
+        if (service is null) return NotFound(new { code = "SERVICE_NOT_FOUND" });
+        var designs = await db.ServiceNailDesigns.AsNoTracking()
+            .Where(x => x.ServiceId == id && x.NailDesign.Status == UserStatus.Active && x.NailDesign.Category.IsActive)
+            .OrderBy(x => x.NailDesign.DisplayOrder).ThenBy(x => x.NailDesign.Name)
+            .Select(x => new CompatibleNailDesignDto(x.NailDesignId, x.NailDesign.Name, x.NailDesign.ImageUrl,
+                new NailDesignCategoryDto(x.NailDesign.Category.Id, x.NailDesign.Category.Name, x.NailDesign.Category.Name.ToLower().Replace(" ", "-")),
+                x.NailDesign.ExtraPrice, service.Price + x.NailDesign.ExtraPrice)).ToListAsync(ct);
+        return Ok(designs);
+    }
 
     [HttpPost]
     [Authorize(Roles = "Admin")]

@@ -11,6 +11,8 @@ public class NailifyDbContext : DbContext
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<StaffProfile> StaffProfiles => Set<StaffProfile>();
     public DbSet<StaffSchedule> StaffSchedules => Set<StaffSchedule>();
+    public DbSet<StaffService> StaffServices => Set<StaffService>();
+    public DbSet<StaffTimeOff> StaffTimeOffs => Set<StaffTimeOff>();
     public DbSet<Category> Categories => Set<Category>();
     public DbSet<NailDesign> NailDesigns => Set<NailDesign>();
     public DbSet<Service> Services => Set<Service>();
@@ -18,17 +20,14 @@ public class NailifyDbContext : DbContext
     public DbSet<ServiceNailDesign> ServiceNailDesigns => Set<ServiceNailDesign>();
     public DbSet<Appointment> Appointments => Set<Appointment>();
     public DbSet<Review> Reviews => Set<Review>();
+    public DbSet<CustomerFavoriteDesign> CustomerFavoriteDesigns => Set<CustomerFavoriteDesign>();
+    public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<DepositPayment> DepositPayments => Set<DepositPayment>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
         builder.ApplyConfigurationsFromAssembly(typeof(NailifyDbContext).Assembly);
-
-        // Appointment - Review 1:0..1
-        builder.Entity<Appointment>()
-            .HasOne(a => a.Review)
-            .WithOne(r => r.Appointment)
-            .HasForeignKey<Review>(r => r.AppointmentId);
 
         // Appointment - Staff (nullable, BR-010) khong cascade delete de tranh mat lich su
         builder.Entity<Appointment>()

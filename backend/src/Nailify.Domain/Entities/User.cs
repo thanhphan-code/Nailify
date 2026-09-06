@@ -15,7 +15,11 @@ public class User : BaseEntity
     // Navigation
     public StaffProfile? StaffProfile { get; set; }
     public ICollection<StaffSchedule> StaffSchedules { get; set; } = new List<StaffSchedule>();
+    public ICollection<StaffService> StaffServices { get; set; } = new List<StaffService>();
+    public ICollection<StaffTimeOff> StaffTimeOffs { get; set; } = new List<StaffTimeOff>();
     public ICollection<Appointment> AppointmentsAsCustomer { get; set; } = new List<Appointment>();
     public ICollection<Appointment> AppointmentsAsStaff { get; set; } = new List<Appointment>();
     public ICollection<Review> Reviews { get; set; } = new List<Review>();
+    public ICollection<CustomerFavoriteDesign> FavoriteDesigns { get; set; } = new List<CustomerFavoriteDesign>();
+    public ICollection<Notification> Notifications { get; set; } = new List<Notification>();
 }
