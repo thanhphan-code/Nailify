@@ -13,5 +13,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\Nailify.Application\Nailify.Application.csproj" />
+    <ProjectReference Include="..\..\src\Nailify.Domain\Nailify.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Nailify.Api\Nailify.Api.csproj" />
   </ItemGroup>
 </Project>

@@ -41,6 +41,12 @@ namespace Nailify.Infrastructure.Migrations
                     b.Property<Guid>("CustomerId")
                         .HasColumnType("uuid");
 
+                    b.Property<int>("DesignAdditionalDurationAtBooking")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("DesignExtraPriceAtBooking")
+                        .HasColumnType("numeric(12,2)");
+
                     b.Property<TimeOnly>("EndTime")
                         .HasColumnType("time without time zone");
 
@@ -76,6 +82,10 @@ namespace Nailify.Infrastructure.Migrations
 
                     b.ToTable("Appointments", t =>
                         {
+                            t.HasCheckConstraint("CK_Appointments_DesignAdditionalDuration_NonNegative", "\"DesignAdditionalDurationAtBooking\" >= 0");
+
+                            t.HasCheckConstraint("CK_Appointments_DesignExtraPrice_NonNegative", "\"DesignExtraPriceAtBooking\" >= 0");
+
                             t.HasCheckConstraint("CK_Appointments_EndTime_After_StartTime", "\"EndTime\" > \"StartTime\"");
 
                             t.HasCheckConstraint("CK_Appointments_TotalPrice_NonNegative", "\"TotalPrice\" >= 0");
@@ -121,6 +131,9 @@ namespace Nailify.Infrastructure.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -137,17 +150,109 @@ namespace Nailify.Infrastructure.Migrations
                     b.ToTable("Categories");
                 });
 
+            modelBuilder.Entity("Nailify.Domain.Entities.CustomerFavoriteDesign", b =>
+                {
+                    b.Property<Guid>("CustomerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("NailDesignId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("CustomerId", "NailDesignId");
+
+                    b.HasIndex("NailDesignId");
+
+                    b.HasIndex("CustomerId", "NailDesignId")
+                        .IsUnique();
+
+                    b.ToTable("CustomerFavoriteDesigns");
+                });
+
+            modelBuilder.Entity("Nailify.Domain.Entities.DepositPayment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("numeric(12,2)");
+
+                    b.Property<Guid>("AppointmentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("PayOsCheckoutUrl")
+                        .HasColumnType("text");
+
+                    b.Property<long?>("PayOsOrderCode")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("PayOsPaymentLinkId")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ReceiptPath")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<DateTime?>("ReceiptSubmittedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("TransactionReference")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("VerifiedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("VerifiedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AppointmentId")
+                        .IsUnique();
+
+                    b.HasIndex("PayOsOrderCode")
+                        .IsUnique();
+
+                    b.HasIndex("Status", "ExpiresAt");
+
+                    b.ToTable("DepositPayments", t =>
+                        {
+                            t.HasCheckConstraint("CK_DepositPayments_Amount_Positive", "\"Amount\" > 0");
+                        });
+                });
+
             modelBuilder.Entity("Nailify.Domain.Entities.NailDesign", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<int>("AdditionalDurationMinutes")
+                        .HasColumnType("integer");
+
                     b.Property<Guid>("CategoryId")
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("integer");
 
                     b.Property<decimal>("ExtraPrice")
                         .HasColumnType("numeric(12,2)");
@@ -156,6 +261,12 @@ namespace Nailify.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(2048)
                         .HasColumnType("character varying(2048)");
+
+                    b.Property<bool>("IsBookable")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsFeatured")
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -173,10 +284,63 @@ namespace Nailify.Infrastructure.Migrations
                     b.HasIndex("CategoryId", "Name")
                         .IsUnique();
 
+                    b.HasIndex("Status", "IsFeatured", "DisplayOrder");
+
                     b.ToTable("NailDesigns", t =>
                         {
+                            t.HasCheckConstraint("CK_NailDesigns_AdditionalDuration_NonNegative", "\"AdditionalDurationMinutes\" >= 0");
+
                             t.HasCheckConstraint("CK_NailDesigns_ExtraPrice_NonNegative", "\"ExtraPrice\" >= 0");
                         });
+                });
+
+            modelBuilder.Entity("Nailify.Domain.Entities.Notification", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("AppointmentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Link")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("ReadAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AppointmentId");
+
+                    b.HasIndex("UserId", "ReadAt", "CreatedAt");
+
+                    b.ToTable("Notifications");
                 });
 
             modelBuilder.Entity("Nailify.Domain.Entities.RefreshToken", b =>
@@ -231,18 +395,34 @@ namespace Nailify.Infrastructure.Migrations
                     b.Property<Guid>("CustomerId")
                         .HasColumnType("uuid");
 
+                    b.Property<bool>("IsApproved")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsFeatured")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsVisible")
+                        .HasColumnType("boolean");
+
                     b.Property<int>("Rating")
                         .HasColumnType("integer");
+
+                    b.Property<Guid>("ServiceId")
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("AppointmentId")
+                    b.HasIndex("CustomerId");
+
+                    b.HasIndex("ServiceId");
+
+                    b.HasIndex("AppointmentId", "ServiceId")
                         .IsUnique();
 
-                    b.HasIndex("CustomerId");
+                    b.HasIndex("IsApproved", "IsVisible", "IsFeatured", "CreatedAt");
 
                     b.ToTable("Reviews", t =>
                         {
@@ -267,6 +447,9 @@ namespace Nailify.Infrastructure.Migrations
                     b.Property<string>("Description")
                         .HasColumnType("text");
 
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("integer");
+
                     b.Property<int>("DurationMinutes")
                         .HasColumnType("integer");
 
@@ -275,6 +458,12 @@ namespace Nailify.Infrastructure.Migrations
                         .HasColumnType("character varying(2048)");
 
                     b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsBookable")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsFeatured")
                         .HasColumnType("boolean");
 
                     b.Property<string>("Name")
@@ -292,6 +481,8 @@ namespace Nailify.Infrastructure.Migrations
 
                     b.HasIndex("Category", "Name")
                         .IsUnique();
+
+                    b.HasIndex("IsActive", "IsBookable", "IsFeatured", "DisplayOrder");
 
                     b.ToTable("Services", t =>
                         {
@@ -389,6 +580,59 @@ namespace Nailify.Infrastructure.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Nailify.Domain.Entities.StaffService", b =>
+                {
+                    b.Property<Guid>("StaffId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ServiceId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("StaffId", "ServiceId");
+
+                    b.HasIndex("ServiceId");
+
+                    b.ToTable("StaffServices");
+                });
+
+            modelBuilder.Entity("Nailify.Domain.Entities.StaffTimeOff", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateOnly>("Date")
+                        .HasColumnType("date");
+
+                    b.Property<TimeOnly>("EndTime")
+                        .HasColumnType("time without time zone");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid>("StaffId")
+                        .HasColumnType("uuid");
+
+                    b.Property<TimeOnly>("StartTime")
+                        .HasColumnType("time without time zone");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StaffId", "Date", "StartTime");
+
+                    b.ToTable("StaffTimeOffs", t =>
+                        {
+                            t.HasCheckConstraint("CK_StaffTimeOffs_EndTime_After_StartTime", "\"EndTime\" > \"StartTime\"");
+                        });
+                });
+
             modelBuilder.Entity("Nailify.Domain.Entities.User", b =>
                 {
                     b.Property<Guid>("Id")
@@ -479,6 +723,36 @@ namespace Nailify.Infrastructure.Migrations
                     b.Navigation("Service");
                 });
 
+            modelBuilder.Entity("Nailify.Domain.Entities.CustomerFavoriteDesign", b =>
+                {
+                    b.HasOne("Nailify.Domain.Entities.User", "Customer")
+                        .WithMany("FavoriteDesigns")
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Nailify.Domain.Entities.NailDesign", "NailDesign")
+                        .WithMany("FavoritedByCustomers")
+                        .HasForeignKey("NailDesignId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("NailDesign");
+                });
+
+            modelBuilder.Entity("Nailify.Domain.Entities.DepositPayment", b =>
+                {
+                    b.HasOne("Nailify.Domain.Entities.Appointment", "Appointment")
+                        .WithOne("DepositPayment")
+                        .HasForeignKey("Nailify.Domain.Entities.DepositPayment", "AppointmentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Appointment");
+                });
+
             modelBuilder.Entity("Nailify.Domain.Entities.NailDesign", b =>
                 {
                     b.HasOne("Nailify.Domain.Entities.Category", "Category")
@@ -488,6 +762,24 @@ namespace Nailify.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Category");
+                });
+
+            modelBuilder.Entity("Nailify.Domain.Entities.Notification", b =>
+                {
+                    b.HasOne("Nailify.Domain.Entities.Appointment", "Appointment")
+                        .WithMany("Notifications")
+                        .HasForeignKey("AppointmentId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("Nailify.Domain.Entities.User", "User")
+                        .WithMany("Notifications")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Appointment");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Nailify.Domain.Entities.RefreshToken", b =>
@@ -504,8 +796,8 @@ namespace Nailify.Infrastructure.Migrations
             modelBuilder.Entity("Nailify.Domain.Entities.Review", b =>
                 {
                     b.HasOne("Nailify.Domain.Entities.Appointment", "Appointment")
-                        .WithOne("Review")
-                        .HasForeignKey("Nailify.Domain.Entities.Review", "AppointmentId")
+                        .WithMany("Reviews")
+                        .HasForeignKey("AppointmentId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -515,9 +807,17 @@ namespace Nailify.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("Nailify.Domain.Entities.Service", "Service")
+                        .WithMany("Reviews")
+                        .HasForeignKey("ServiceId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.Navigation("Appointment");
 
                     b.Navigation("Customer");
+
+                    b.Navigation("Service");
                 });
 
             modelBuilder.Entity("Nailify.Domain.Entities.ServiceNailDesign", b =>
@@ -561,11 +861,45 @@ namespace Nailify.Infrastructure.Migrations
                     b.Navigation("Staff");
                 });
 
+            modelBuilder.Entity("Nailify.Domain.Entities.StaffService", b =>
+                {
+                    b.HasOne("Nailify.Domain.Entities.Service", "Service")
+                        .WithMany("StaffServices")
+                        .HasForeignKey("ServiceId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Nailify.Domain.Entities.User", "Staff")
+                        .WithMany("StaffServices")
+                        .HasForeignKey("StaffId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Service");
+
+                    b.Navigation("Staff");
+                });
+
+            modelBuilder.Entity("Nailify.Domain.Entities.StaffTimeOff", b =>
+                {
+                    b.HasOne("Nailify.Domain.Entities.User", "Staff")
+                        .WithMany("StaffTimeOffs")
+                        .HasForeignKey("StaffId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Staff");
+                });
+
             modelBuilder.Entity("Nailify.Domain.Entities.Appointment", b =>
                 {
                     b.Navigation("AppointmentServices");
 
-                    b.Navigation("Review");
+                    b.Navigation("DepositPayment");
+
+                    b.Navigation("Notifications");
+
+                    b.Navigation("Reviews");
                 });
 
             modelBuilder.Entity("Nailify.Domain.Entities.Category", b =>
@@ -577,6 +911,8 @@ namespace Nailify.Infrastructure.Migrations
                 {
                     b.Navigation("Appointments");
 
+                    b.Navigation("FavoritedByCustomers");
+
                     b.Navigation("ServiceNailDesigns");
                 });
 
@@ -584,7 +920,11 @@ namespace Nailify.Infrastructure.Migrations
                 {
                     b.Navigation("AppointmentServices");
 
+                    b.Navigation("Reviews");
+
                     b.Navigation("ServiceNailDesigns");
+
+                    b.Navigation("StaffServices");
                 });
 
             modelBuilder.Entity("Nailify.Domain.Entities.User", b =>
@@ -593,11 +933,19 @@ namespace Nailify.Infrastructure.Migrations
 
                     b.Navigation("AppointmentsAsStaff");
 
+                    b.Navigation("FavoriteDesigns");
+
+                    b.Navigation("Notifications");
+
                     b.Navigation("Reviews");
 
                     b.Navigation("StaffProfile");
 
                     b.Navigation("StaffSchedules");
+
+                    b.Navigation("StaffServices");
+
+                    b.Navigation("StaffTimeOffs");
                 });
 #pragma warning restore 612, 618
         }

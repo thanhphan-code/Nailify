@@ -44,12 +44,12 @@ export function RegisterForm({ embedded = false, onSwitchToLogin }: RegisterForm
   const formContent = (
     <>
         <div className="auth-heading">
-          <h1 id="register-heading">Create your Free Account</h1>
-          <p>Book your beauty. Love your nails.</p>
+          <h1 id="register-heading">Tạo tài khoản miễn phí</h1>
+          <p>Đặt lịch làm đẹp. Yêu chiều bộ móng của bạn.</p>
         </div>
         <form noValidate onSubmit={handleSubmit(onSubmit)} className="auth-form">
           <div className="auth-field">
-            <label htmlFor="fullName">Full name</label>
+            <label htmlFor="fullName">Họ và tên</label>
             <input id="fullName" type="text" placeholder="Enter your Full Name" autoComplete="name" aria-invalid={Boolean(errors.fullName)} {...register("fullName")} />
             {errors.fullName && <p className="field-error">{errors.fullName.message}</p>}
           </div>
@@ -59,18 +59,18 @@ export function RegisterForm({ embedded = false, onSwitchToLogin }: RegisterForm
             {errors.email && <p className="field-error">{errors.email.message}</p>}
           </div>
           <div className="auth-field">
-            <label htmlFor="phoneNumber">Phone number</label>
+            <label htmlFor="phoneNumber">Số điện thoại</label>
             <input id="phoneNumber" type="tel" placeholder="Enter your Phone Number" autoComplete="tel" aria-invalid={Boolean(errors.phoneNumber)} {...register("phoneNumber")} />
             {errors.phoneNumber && <p className="field-error">{errors.phoneNumber.message}</p>}
           </div>
           <div className="auth-field">
-            <label htmlFor="register-password">Password</label>
+            <label htmlFor="register-password">Mật khẩu</label>
             <input id="register-password" type="password" placeholder="Create a Password" autoComplete="new-password" aria-describedby="password-help" aria-invalid={Boolean(errors.password)} {...register("password")} />
-            <p id="password-help" className="field-hint">Use 8+ characters with uppercase, lowercase, number and special character.</p>
+            <p id="password-help" className="field-hint">Dùng ít nhất 8 ký tự gồm chữ hoa, chữ thường, số và ký tự đặc biệt.</p>
             {errors.password && <p className="field-error">{errors.password.message}</p>}
           </div>
           <div className="auth-field">
-            <label htmlFor="confirmPassword">Confirm password</label>
+            <label htmlFor="confirmPassword">Xác nhận mật khẩu</label>
             <input id="confirmPassword" type="password" placeholder="Confirm your Password" autoComplete="new-password" aria-invalid={Boolean(errors.confirmPassword)} {...register("confirmPassword")} />
             {errors.confirmPassword && <p className="field-error">{errors.confirmPassword.message}</p>}
           </div>
@@ -81,15 +81,15 @@ export function RegisterForm({ embedded = false, onSwitchToLogin }: RegisterForm
         </form>
         <p className="auth-switch">
           Already have an account? {embedded ? (
-            <button type="button" className="auth-switch-link" onClick={onSwitchToLogin}>Log in</button>
+            <button type="button" className="auth-switch-link" onClick={onSwitchToLogin}>Đăng nhập</button>
           ) : (
-            <Link to="/login">Log in</Link>
+            <Link to="/login">Đăng nhập</Link>
           )}
         </p>
-        <div className="auth-divider" aria-hidden="true"><span>OR CONTINUE WITH</span></div>
+        <div className="auth-divider" aria-hidden="true"><span>HOẶC TIẾP TỤC VỚI</span></div>
         <div className="auth-socials">
           <button type="button" className="auth-social-button" aria-label="Continue with Google" onClick={() => window.location.assign("/api/auth/google")}>
-            <span className="auth-social-mark auth-social-google">G</span> Continue with Google
+            <span className="auth-social-mark auth-social-google">G</span> Tiếp tục với Google
           </button>
         </div>
     </>

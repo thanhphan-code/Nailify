@@ -21,9 +21,14 @@ public class Appointment : BaseEntity
     public TimeOnly EndTime { get; set; } // tinh theo BR-004
 
     public decimal TotalPrice { get; set; } // tinh theo BR-008
+    // Snapshot of the design surcharge at checkout; later catalogue edits must not change booking history.
+    public decimal DesignExtraPriceAtBooking { get; set; }
+    public int DesignAdditionalDurationAtBooking { get; set; }
     public AppointmentStatus Status { get; set; } = AppointmentStatus.Pending;
     public string? Note { get; set; }
     public string? CancellationReason { get; set; }
 
-    public Review? Review { get; set; }
+    public ICollection<Review> Reviews { get; set; } = new List<Review>();
+    public ICollection<Notification> Notifications { get; set; } = new List<Notification>();
+    public DepositPayment? DepositPayment { get; set; }
 }

@@ -1,13 +1,241 @@
-import { Link, useNavigate } from "react-router-dom";
-import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { getServices } from "@/features/services/api";
 import { useAuth } from "@/hooks/useAuth";
 import { useServiceSelectionStore } from "@/store/serviceSelectionStore";
 import type { Service } from "@/types/service";
-const categories = ["All", "Manicure", "Pedicure", "NailArt", "AddOn", "Other"];
+import heroImage from "@/assets/images/nailify-hero.png";
+import CustomerHeader from "@/components/CustomerHeader";
+const formatMoney = (value: number) => new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND", maximumFractionDigits: 0 }).format(value);
+
+const categories = [
+  { value: "All", label: "Tất cả" }, { value: "Manicure", label: "Chăm sóc móng tay" },
+  { value: "Pedicure", label: "Chăm sóc móng chân" }, { value: "NailArt", label: "Nghệ thuật nail" },
+  { value: "AddOn", label: "Dịch vụ thêm" }, { value: "Other", label: "Khác" },
+];
+
 export default function ServicesPage() {
- const { isAuthenticated } = useAuth(); const navigate = useNavigate(); const [category,setCategory]=useState("All"); const [search,setSearch]=useState(""); const [items,setItems]=useState<Service[]>([]); const [loading,setLoading]=useState(true); const [error,setError]=useState(false); const {items:selected,toggle}=useServiceSelectionStore();
- useEffect(()=>{ setLoading(true); getServices({ category: category === "All" ? undefined : category, search, pageSize: 50 }).then(x=>setItems(x.items)).catch(()=>setError(true)).finally(()=>setLoading(false)); },[category,search]);
- const totals=useMemo(()=>selected.reduce((x,s)=>({price:x.price+s.price,duration:x.duration+s.durationMinutes}),{price:0,duration:0}),[selected]);
- return <main className="min-h-screen bg-[#f8fbff] text-slate-900"><header className="flex items-center justify-between border-b bg-white px-6 py-5"><Link className="text-2xl font-extrabold text-blue-600 no-underline" to="/">Nailify</Link><nav className="flex gap-5 text-sm"><Link to="/">Home</Link><Link className="font-bold text-blue-600" to="/services">Services</Link><Link to="/nail-designs">Nail Designs</Link></nav>{isAuthenticated?<span className="text-sm font-semibold">Customer</span>:<div className="flex gap-2"><Link className="px-3 py-2 text-sm" to="/login">Log in</Link><Link className="rounded-lg bg-blue-600 px-3 py-2 text-sm text-white" to="/register">Sign up</Link></div>}</header><div className="mx-auto max-w-7xl px-6 py-10"><h1 className="text-4xl font-extrabold">Nail services</h1><p className="mt-2 text-slate-500">Choose one or more services before selecting an appointment time.</p><div className="mt-7 flex flex-wrap gap-2">{categories.map(x=><button className={`rounded-full border px-4 py-2 text-sm ${category===x?"bg-blue-600 text-white":"bg-white"}`} onClick={()=>setCategory(x)} key={x}>{x}</button>)}</div><input className="mt-5 w-full max-w-xl rounded-xl border p-3" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search services" />{loading?<p className="py-12">Loading services…</p>:error?<p className="py-12 text-red-700">Unable to load services. Please try again.</p>:<div className="mt-7 grid gap-5 md:grid-cols-2 lg:grid-cols-3">{items.map(s=><article className="rounded-2xl border bg-white p-5 shadow-sm" key={s.id}>{s.imageUrl?<img className="mb-4 h-40 w-full rounded-xl object-cover" src={s.imageUrl} onError={(e)=>{e.currentTarget.style.display="none";}} alt=""/>:<div className="mb-4 grid h-40 place-items-center rounded-xl bg-blue-50 text-4xl text-blue-500">✦</div>}<span className="rounded-full bg-blue-50 px-3 py-1 text-xs text-blue-700">{s.category}</span><h2 className="mt-3 text-lg font-bold">{s.name}</h2><p className="mt-1 min-h-10 text-sm text-slate-500">{s.description || "Professional nail salon service."}</p><p className="mt-4 font-semibold">${s.price} · {s.durationMinutes} min</p><button disabled={!isAuthenticated} onClick={()=>toggle(s)} className="mt-4 w-full rounded-xl bg-blue-600 px-4 py-3 font-bold text-white disabled:cursor-not-allowed disabled:bg-slate-300">{!isAuthenticated?"Sign in to book":selected.some(x=>x.id===s.id)?"Remove from booking":"Add to booking"}</button></article>)}</div>}{isAuthenticated&&selected.length>0&&<aside className="fixed bottom-5 right-5 rounded-2xl bg-slate-900 p-5 text-white shadow-xl"><strong>{selected.length} service{selected.length>1?"s":""} selected</strong><p className="mt-1 text-sm">${totals.price} · {totals.duration} min</p><button onClick={()=>navigate("/booking")} className="mt-3 rounded-lg bg-white px-4 py-2 text-sm font-bold text-slate-900">Continue to booking</button></aside>}</div></main>;
+  const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+  const [category, setCategory] = useState("All");
+  const [search, setSearch] = useState("");
+  const [items, setItems] = useState<Service[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const [retryKey, setRetryKey] = useState(0);
+  const { items: selected, select, clear } = useServiceSelectionStore();
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      setLoading(true);
+      setError(false);
+      try {
+        const response = await getServices({
+          category: category === "All" ? undefined : category,
+          search: search.trim() || undefined,
+          pageSize: 50,
+        });
+        if (!cancelled) setItems(response.items);
+      } catch {
+        if (!cancelled) {
+          setItems([]);
+          setError(true);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, [category, search, retryKey]);
+
+  const selectService = (service: Service) => {
+    if (!isAuthenticated) {
+      navigate("/login", { state: { returnUrl: "/services" } });
+      return;
+    }
+    select(service);
+    navigate("/booking");
+  };
+
+  return (
+    <main className="design-page services-page">
+      <CustomerHeader active="services" />
+      <div className="customer-page-content">
+        <header className="max-w-2xl">
+          <p className="text-xs font-bold uppercase tracking-[.08em] text-[#0768dd]">
+            Dịch vụ
+          </p>
+          <h1 className="mt-3 text-4xl font-extrabold tracking-[-.04em] sm:text-5xl">
+            Chọn dịch vụ chính của bạn.
+          </h1>
+          <p className="mt-3 text-base leading-7 text-[#61708c]">
+            Chọn một dịch vụ chính, sau đó chọn mẫu nail phù hợp và giờ hẹn còn trống.
+          </p>
+        </header>
+        <section className="services-filter-panel" aria-label="Bộ lọc dịch vụ">
+          <label className="services-filter-search" htmlFor="service-search">
+            Tìm kiếm dịch vụ
+            <input
+              id="service-search"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Nhập tên dịch vụ"
+            />
+          </label>
+          <div className="services-category-list" aria-label="Danh mục dịch vụ">
+            {categories.map((item) => (
+              <button
+                type="button"
+                className={
+                  "services-category-button" +
+                  (category === item.value ? " is-selected" : "")
+                }
+                onClick={() => setCategory(item.value)}
+                key={item.value}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </section>
+        <p className="mt-5 text-sm text-[#60718a]" aria-live="polite">
+          {loading
+            ? "Đang tải dịch vụ..."
+            : error
+              ? "Không thể tải dịch vụ."
+              : "Có " + items.length + " dịch vụ"}
+        </p>
+        {loading ? (
+          <div className="mt-6 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: 6 }, (_, index) => (
+              <div
+                className="animate-pulse rounded-2xl border border-[#e1e9f1] bg-white p-5"
+                key={index}
+              >
+                <div className="h-40 rounded-xl bg-slate-100" />
+                <div className="mt-4 h-4 w-24 rounded bg-slate-100" />
+                <div className="mt-3 h-5 w-2/3 rounded bg-slate-100" />
+              </div>
+            ))}
+          </div>
+        ) : error ? (
+          <section className="services-error-state" role="alert">
+            <div className="services-error-icon" aria-hidden="true">
+              !
+            </div>
+            <div>
+              <h2>Dịch vụ tạm thời chưa khả dụng.</h2>
+              <p>
+                Danh sách dịch vụ sẽ hiển thị ngay khi máy chủ hoạt động trở lại.
+              </p>
+            </div>
+            <button type="button" onClick={() => setRetryKey((key) => key + 1)}>
+              Thử lại
+            </button>
+          </section>
+        ) : items.length === 0 ? (
+          <section className="mt-6 rounded-2xl border border-dashed border-[#bed2e8] bg-white p-8 text-center">
+            <h2 className="text-lg font-extrabold">Không tìm thấy dịch vụ</h2>
+            <p className="mt-2 text-sm text-[#61708c]">
+              Hãy thử từ khóa hoặc danh mục khác.
+            </p>
+            <button
+              type="button"
+              className="mt-5 rounded-xl border border-[#87bdf2] px-4 py-3 text-sm font-bold text-[#0768dd]"
+              onClick={() => {
+                setSearch("");
+                setCategory("All");
+              }}
+            >
+              Xóa bộ lọc
+            </button>
+          </section>
+        ) : (
+          <div className="mt-6 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+            {items.map((service) => {
+              const imageUrl = service.imageUrl || heroImage;
+              return (
+                <article
+                  className="service-card border-[#e0e8f0]"
+                  key={service.id}
+                >
+                  <img
+                    className={
+                      "service-card-image service-card-image-" +
+                      service.category
+                    }
+                    src={imageUrl}
+                    onError={(event) => {
+                      event.currentTarget.src = heroImage;
+                    }}
+                    alt={service.name}
+                  />
+                  <span className="rounded-full bg-[#edf6ff] px-3 py-1 text-xs font-semibold text-[#39709e]">
+                    {service.category}
+                  </span>
+                  <h2 className="mt-3 text-lg font-extrabold">
+                    {service.name}
+                  </h2>
+                  <p className="mt-1 min-h-10 text-sm leading-5 text-[#63738a]">
+                    {service.description || "Dịch vụ chăm sóc móng chuyên nghiệp."}
+                  </p>
+                  <p className="mt-4 font-semibold">
+                    {service.durationMinutes} phút{" "}
+                    <span className="ml-2 text-[#0871df]">
+                      {"Từ " + formatMoney(service.price)}
+                    </span>
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => selectService(service)}
+                    className="mt-5 min-h-11 w-full rounded-xl bg-[#0768dd] px-4 py-3 text-sm font-bold text-white hover:bg-[#075fc3]"
+                  >
+                    {!isAuthenticated
+                      ? "Đăng nhập để chọn"
+                      : "Đặt dịch vụ này"}
+                  </button>
+                </article>
+              );
+            })}
+          </div>
+        )}
+      </div>
+      {isAuthenticated && selected.length > 0 && (
+        <aside
+          id="selected-services"
+          className="fixed bottom-4 left-4 right-4 z-40 mx-auto flex max-w-md items-center justify-between gap-4 rounded-2xl bg-[#172a42] p-4 text-white shadow-xl"
+        >
+          <div>
+            <strong>Đã chọn {selected[0].name}</strong>
+            <p className="mt-1 text-xs text-[#c8d9ea]">
+              {"Từ " + formatMoney(selected[0].price) +
+                " · " +
+                selected[0].durationMinutes +
+                " phút"}
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              className="rounded-lg px-3 py-2 text-xs font-bold text-[#d1e1f1]"
+              onClick={clear}
+            >
+              Bỏ chọn
+            </button>
+            <button
+              type="button"
+              className="rounded-lg bg-white px-3 py-2 text-xs font-bold text-[#172a42]"
+              onClick={() => navigate("/booking")}
+            >
+              Tiếp tục
+            </button>
+          </div>
+        </aside>
+      )}
+    </main>
+  );
 }

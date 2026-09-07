@@ -17,5 +17,5 @@ export default function GoogleCallbackPage() {
       .catch(() => setError("Google sign-in could not be completed. Please try again."));
   }, [navigate, params, setAuth]);
 
-  return <main className="auth-shell"><section className="auth-panel auth-status-panel"><h1>{error ? "Sign-in failed" : "Signing you in..."}</h1><p>{error ?? "Please wait while we securely complete Google sign-in."}</p>{error && <button type="button" className="auth-submit" onClick={() => navigate("/login", { replace: true })}>Back to login</button>}</section></main>;
+  return <main className="auth-shell"><section className="auth-panel auth-status-panel"><h1>{error ? "Đăng nhập thất bại" : "Đang đăng nhập..."}</h1><p>{error ?? "Vui lòng chờ trong khi chúng tôi hoàn tất đăng nhập Google an toàn."}</p>{error && <button type="button" className="auth-submit" onClick={() => navigate("/login", { replace: true })}>Quay lại đăng nhập</button>}</section></main>;
 }

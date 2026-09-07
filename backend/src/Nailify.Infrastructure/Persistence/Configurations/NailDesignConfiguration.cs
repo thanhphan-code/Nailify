@@ -11,6 +11,8 @@ public class NailDesignConfiguration : IEntityTypeConfiguration<NailDesign>
         builder.Property(x => x.Name).IsRequired().HasMaxLength(150);
         builder.Property(x => x.ImageUrl).IsRequired().HasMaxLength(2_048);
         builder.Property(x => x.ExtraPrice).HasColumnType("numeric(12,2)");
+        builder.ToTable(t => t.HasCheckConstraint("CK_NailDesigns_AdditionalDuration_NonNegative", "\"AdditionalDurationMinutes\" >= 0"));
+        builder.HasIndex(x => new { x.Status, x.IsFeatured, x.DisplayOrder });
         builder.HasIndex(x => new { x.CategoryId, x.Name }).IsUnique();
         builder.ToTable(t => t.HasCheckConstraint("CK_NailDesigns_ExtraPrice_NonNegative", "\"ExtraPrice\" >= 0"));
 

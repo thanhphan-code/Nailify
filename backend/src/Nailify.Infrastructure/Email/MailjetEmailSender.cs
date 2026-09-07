@@ -20,6 +20,13 @@ public sealed class MailjetEmailSender : IEmailSender
 
     public async Task SendPasswordResetCodeAsync(string recipientEmail, string code, CancellationToken cancellationToken = default)
     {
+        await SendAsync(recipientEmail, "Mã đặt lại mật khẩu Nailify",
+            $"Mã đặt lại mật khẩu Nailify của bạn là {code}. Mã hết hạn sau 10 phút.",
+            $"<p>Mã đặt lại mật khẩu Nailify của bạn:</p><p style=\"font-size:28px;font-weight:700;letter-spacing:6px\">{code}</p><p>Mã hết hạn sau 10 phút.</p>", cancellationToken);
+    }
+
+    public async Task SendAsync(string recipientEmail, string subject, string textContent, string htmlContent, CancellationToken cancellationToken = default)
+    {
         if (!_options.IsConfigured)
             throw new InvalidOperationException("Mailjet is not configured. Set Mailjet API credentials and a verified sender address.");
 
@@ -34,15 +41,15 @@ public sealed class MailjetEmailSender : IEmailSender
                 {
                     From = new { Email = _options.FromEmail, Name = _options.FromName },
                     To = new[] { new { Email = recipientEmail } },
-                    Subject = "Your Nailify password reset code",
-                    TextPart = $"Your Nailify password reset code is {code}. It expires in 10 minutes. If you did not request it, you can ignore this email.",
-                    HTMLPart = $"<p>Your Nailify password reset code is:</p><p style=\"font-size:28px;font-weight:700;letter-spacing:6px\">{code}</p><p>This code expires in 10 minutes. If you did not request it, you can ignore this email.</p>"
+                    Subject = subject,
+                    TextPart = textContent,
+                    HTMLPart = htmlContent
                 }
             }
         });
 
         using var response = await _httpClient.SendAsync(request, cancellationToken);
         if (!response.IsSuccessStatusCode)
-            throw new InvalidOperationException("Mailjet could not send the password reset email.");
+            throw new InvalidOperationException("Mailjet không thể gửi email.");
     }
 }
